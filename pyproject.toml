@@ -1,0 +1,192 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "infracents"
+version = "0.1.0"
+description = "Terraform cost estimation for pull requests — know what your changes cost before they ship."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [
+    { name = "InfraCents", email = "hello@infracents.dev" },
+]
+keywords = ["terraform", "cost", "estimation", "infrastructure", "cloud", "aws", "gcp", "devops"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Systems Administration",
+]
+
+dependencies = [
+    # Web framework
+    "fastapi>=0.109.0,<1.0",
+    "uvicorn[standard]>=0.27.0,<1.0",
+    "pydantic>=2.5.0,<3.0",
+    "pydantic-settings>=2.1.0,<3.0",
+
+    # HTTP client (GitHub & cloud pricing APIs)
+    "httpx>=0.26.0,<1.0",
+
+    # GitHub App JWT authentication
+    "PyJWT[crypto]>=2.8.0,<3.0",
+    "cryptography>=41.0.0,<43.0",
+
+    # Database
+    "asyncpg>=0.29.0,<1.0",
+    "sqlalchemy[asyncio]>=2.0.25,<3.0",
+
+    # Redis
+    "redis[hiredis]>=5.0.0,<6.0",
+
+    # Stripe billing
+    "stripe>=7.0.0,<8.0",
+
+    # Monitoring
+    "sentry-sdk[fastapi]>=1.39.0,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=7.4.0,<9.0",
+    "pytest-asyncio>=0.23.0,<1.0",
+    "pytest-cov>=4.1.0,<6.0",
+    "pytest-mock>=3.12.0,<4.0",
+
+    # Linting & formatting
+    "ruff>=0.2.0,<1.0",
+    "black>=23.12.0,<25.0",
+    "mypy>=1.8.0,<2.0",
+
+    # Type stubs
+    "types-redis>=4.6.0",
+]
+
+[project.urls]
+Homepage = "https://infracents.dev"
+Documentation = "https://infracents.dev/docs"
+Repository = "https://github.com/infracents/infracents"
+"Bug Tracker" = "https://github.com/infracents/infracents/issues"
+Changelog = "https://github.com/infracents/infracents/blob/main/CHANGELOG.md"
+
+# =============================================================================
+# Tool Configuration
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests that require external services",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:pkg_resources",
+]
+
+# ---------------------------------------------------------------------------
+# ruff (linter + import sorter — replaces flake8 + isort)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["backend", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+    "RET",  # flake8-return
+    "PTH",  # flake8-use-pathlib
+    "T20",  # flake8-print
+]
+ignore = [
+    "E501",   # line-too-long (handled by black)
+    "B008",   # do not perform function calls in argument defaults (FastAPI Depends)
+    "RET504", # unnecessary-assign (readability preference)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend", "models", "services", "pricing_data", "utils", "api"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "T20",    # allow print in tests
+    "S101",   # allow assert in tests
+]
+
+# ---------------------------------------------------------------------------
+# black (formatter)
+# ---------------------------------------------------------------------------
+[tool.black]
+target-version = ["py311"]
+line-length = 100
+
+# ---------------------------------------------------------------------------
+# mypy (type checker)
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false          # Gradually tighten
+check_untyped_defs = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = [
+    "redis.*",
+    "stripe.*",
+    "sentry_sdk.*",
+    "asyncpg.*",
+]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["backend"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "pass",
+]
+show_missing = true
+skip_covered = true
+fail_under = 60

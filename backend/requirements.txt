@@ -1,0 +1,28 @@
+# InfraCents Backend — Production Dependencies
+# Pin all versions for reproducible builds
+
+# Web framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# HTTP client (for GitHub & cloud APIs)
+httpx==0.26.0
+
+# GitHub App JWT authentication
+PyJWT[crypto]==2.8.0
+cryptography==41.0.7
+
+# Database
+asyncpg==0.29.0
+sqlalchemy[asyncio]==2.0.25
+
+# Redis
+redis[hiredis]==5.0.1
+
+# Stripe billing
+stripe==7.10.0
+
+# Monitoring
+sentry-sdk[fastapi]==1.39.2

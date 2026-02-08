@@ -1,0 +1,140 @@
+# =============================================================================
+# CI Pipeline — Test + Lint on Pull Requests
+# =============================================================================
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Backend Tests
+  # ---------------------------------------------------------------------------
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements-dev.txt
+
+      - name: Run linting
+        run: |
+          cd backend
+          python -m ruff check .
+          python -m ruff format --check .
+
+      - name: Run type checking
+        run: |
+          cd backend
+          python -m mypy . --ignore-missing-imports --exclude venv
+
+      - name: Run tests
+        env:
+          REDIS_URL: redis://localhost:6379/0
+          DATABASE_URL: sqlite:///test.db
+          ENVIRONMENT: test
+        run: |
+          python -m pytest tests/ -v --cov=backend --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage
+        if: github.event_name == 'push'
+        uses: codecov/codecov-action@v3
+        with:
+          file: backend/coverage.xml
+          flags: backend
+
+  # ---------------------------------------------------------------------------
+  # Frontend Tests
+  # ---------------------------------------------------------------------------
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Lint
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Type check
+        run: |
+          cd frontend
+          npx tsc --noEmit
+
+      - name: Build
+        run: |
+          cd frontend
+          npm run build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+
+  # ---------------------------------------------------------------------------
+  # Docker Build (validate Dockerfile)
+  # ---------------------------------------------------------------------------
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          cd backend
+          docker build -t infracents-api:test .
+
+      - name: Test Docker image
+        run: |
+          docker run --rm -d --name infracents-test -p 8080:8080 \
+            -e ENVIRONMENT=test \
+            -e DATABASE_URL=sqlite:///test.db \
+            -e REDIS_URL=redis://localhost:6379/0 \
+            infracents-api:test
+          sleep 5
+          curl -f http://localhost:8080/health/ready || exit 1
+          docker stop infracents-test

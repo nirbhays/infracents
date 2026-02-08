@@ -1,0 +1,49 @@
+# =============================================================================
+# InfraCents — Local Development Services
+# =============================================================================
+# Provides PostgreSQL and Redis for local development.
+# The backend itself runs outside Docker (for hot-reload).
+#
+# Usage:
+#   docker-compose up -d     # Start services
+#   docker-compose down       # Stop services
+#   docker-compose logs -f    # View logs
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: infracents-postgres
+    environment:
+      POSTGRES_USER: infracents
+      POSTGRES_PASSWORD: infracents
+      POSTGRES_DB: infracents
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infracents"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: infracents-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
