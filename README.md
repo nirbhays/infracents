@@ -323,6 +323,19 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the full contributor guide,
 
 ---
 
+## Connect & Follow
+
+If you find this project useful, consider:
+
+- ⭐ **Starring** this repo to help others discover it
+- 🐛 **Opening issues** for bugs or feature requests
+- 🤝 **Contributing** — see [CONTRIBUTING.md](CONTRIBUTING.md)
+- 📝 [Read the blog post](https://medium.com/@nirbhaysingh1/i-built-a-bot-that-killed-147-000-in-wasted-cloud-spend-before-it-shipped-d25175df9e42)
+- 💼 **LinkedIn**: [Nirbhay Singh](https://www.linkedin.com/in/nirbhaysingh1/)
+- 🐙 **GitHub**: [@nirbhays](https://github.com/nirbhays)
+
+Built with ❤️ by [Nirbhay Singh](https://cloudtoai.in) — Cloud & AI Architect
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
